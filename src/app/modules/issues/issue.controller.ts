@@ -2,8 +2,10 @@ import type { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import {
   createIssueIntoDB,
+  deleteIssueFromDB,
   getAllIssuesFromDB,
   getSingleIssueFromDB,
+  updateIssueIntoDB,
 } from "./issue.service";
 import type { CustomRequest } from "../../middleware/auth";
 
@@ -69,6 +71,51 @@ export const getSingleIssue = async (
     res.status(StatusCodes.OK).json({
       success: true,
       data: result,
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.NOT_FOUND).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateIssue = async (
+  req: CustomRequest,
+  res: Response
+) => {
+  try {
+    const result = await updateIssueIntoDB(
+      Number(req.params.id),
+      req.body,
+      req.user
+    );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Issue updated successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteIssue = async (
+  req: Response | any,
+  res: Response
+) => {
+  try {
+    await deleteIssueFromDB(
+      Number(req.params.id)
+    );
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Issue deleted successfully",
     });
   } catch (error: any) {
     res.status(StatusCodes.NOT_FOUND).json({

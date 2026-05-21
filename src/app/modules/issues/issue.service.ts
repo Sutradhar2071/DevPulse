@@ -135,3 +135,92 @@ export const getSingleIssueFromDB = async (
     updated_at: issue.updated_at,
   };
 };
+
+export const updateIssueIntoDB = async (
+  id: number,
+  payload: any,
+  user: any
+) => {
+  // find issue
+  const issueResult = await pool.query(
+    `
+    SELECT * FROM issues WHERE id = $1
+    `,
+    [id]
+  );
+
+  if (issueResult.rows.length === 0) {
+    throw new Error("Issue not found");
+  }
+
+  const issue = issueResult.rows[0];
+
+  // contributor permission check
+  if (user.role === "contributor") {
+    // own issue only
+    if (issue.reporter_id !== user.id) {
+      throw new Error(
+        "You can only update your own issues"
+      );
+    }
+
+    // only open issue
+    if (issue.status !== "open") {
+      throw new Error(
+        "You cannot update resolved or in progress issues"
+      );
+    }
+  }
+
+  const {
+    title,
+    description,
+    type,
+    status,
+  } = payload;
+
+  const updatedResult = await pool.query(
+    `
+    UPDATE issues
+    SET
+      title = $1,
+      description = $2,
+      type = $3,
+      status = $4,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $5
+    RETURNING *
+    `,
+    [
+      title || issue.title,
+      description || issue.description,
+      type || issue.type,
+      status || issue.status,
+      id,
+    ]
+  );
+
+  return updatedResult.rows[0];
+};
+
+export const deleteIssueFromDB = async (
+  id: number
+) => {
+  const issueResult = await pool.query(
+    `
+    SELECT * FROM issues WHERE id = $1
+    `,
+    [id]
+  );
+
+  if (issueResult.rows.length === 0) {
+    throw new Error("Issue not found");
+  }
+
+  await pool.query(
+    `
+    DELETE FROM issues WHERE id = $1
+    `,
+    [id]
+  );
+};
